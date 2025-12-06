@@ -184,6 +184,34 @@ async function generateImageOpenAI(prompt: string): Promise<string> {
         return '';
     }
 }
+// 3. Title Generation (using Gemini)
+async function generateCardTitle(inputText: string): Promise<string> {
+    const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+    if (!apiKey) return '';
+
+    try {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                contents: [{
+                    parts: [{
+                        text: `Create a short, punchy title (max 3 words) for a trading card based on this description: "${inputText}". Return ONLY the title. No quotes.`
+                    }]
+                }]
+            })
+        });
+
+        const data = await response.json();
+        if (!response.ok) return '';
+
+        return data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
+    } catch (error) {
+        console.error('Title generation failed:', error);
+        return '';
+    }
+}
+
 // ---------------------------------
 
 if (SpeechRecognition) {
@@ -327,12 +355,19 @@ confirmBtn.addEventListener('click', async () => {
     confirmBtn.disabled = true;
     confirmBtn.classList.add('opacity-75', 'cursor-wait');
 
-    // Generate Image
+    // Generate Image & Title
     let imageUrl = '';
+    let cardTitle = '';
+
     try {
-        // 1. Refine Prompt / Check Object
-        const refinedPrompt = await refinePromptWithGemini(text);
+        // Run Title and Image generation in parallel
+        const [refinedPrompt, titleResult] = await Promise.all([
+            refinePromptWithGemini(text),
+            generateCardTitle(text)
+        ]);
         
+        cardTitle = titleResult;
+
         if (refinedPrompt) {
             console.log('Generating with prompt:', refinedPrompt);
             // 2. Generate Image
@@ -344,19 +379,37 @@ confirmBtn.addEventListener('click', async () => {
         console.error(e);
     }
 
+    // Fallback title if API fails
+    if (!cardTitle) {
+        cardTitle = text.split(' ').slice(0, 3).join(' ').toUpperCase();
+    }
+
     // Add to cards array
     cards.push(text);
     const cardIndex = cards.length;
 
     // Create Card Element
     const cardEl = document.createElement('div');
-    cardEl.className = 'aspect-[3/4] bg-blue-600 rounded-lg border-4 border-blue-800 flex items-center justify-center cursor-pointer hover:scale-105 transition-transform shadow-lg overflow-hidden relative';
+    cardEl.className = 'aspect-[3/4] bg-blue-600 rounded-lg border-4 border-blue-800 flex flex-col items-center justify-center cursor-pointer hover:scale-105 transition-transform shadow-lg overflow-hidden relative';
     
+    // Title Overlay
+    const titleEl = document.createElement('div');
+    titleEl.className = 'absolute top-0 left-0 w-full bg-black/50 text-white text-center py-1 font-bold z-10 uppercase tracking-wider text-sm';
+    titleEl.textContent = cardTitle;
+    cardEl.appendChild(titleEl);
+
     if (imageUrl) {
-        cardEl.innerHTML = `<img src="${imageUrl}" alt="${text}" class="w-full h-full object-cover pixelated" />`;
+        const img = document.createElement('img');
+        img.src = imageUrl;
+        img.alt = text;
+        img.className = 'w-full h-full object-cover pixelated';
+        cardEl.appendChild(img);
     } else {
         // Fallback if generation fails
-        cardEl.innerHTML = `<span class="text-white text-4xl font-bold">#${cardIndex}</span>`;
+        const num = document.createElement('span');
+        num.className = 'text-white text-4xl font-bold';
+        num.textContent = `#${cardIndex}`;
+        cardEl.appendChild(num);
     }
     
     // Add click event to open modal
@@ -367,12 +420,29 @@ confirmBtn.addEventListener('click', async () => {
         
         // Update Modal Front Image
         const modalFront = document.querySelector('#modalCard > div:first-child') as HTMLDivElement;
+        modalFront.innerHTML = ''; // Clear previous content
+        
+        // Add Title to Modal Front too
+        const modalTitle = document.createElement('div');
+        modalTitle.className = 'absolute top-0 left-0 w-full bg-black/50 text-center text-white text-3xl font-bold z-10 uppercase tracking-widest py-4';
+        modalTitle.textContent = cardTitle;
+        modalFront.appendChild(modalTitle);
+
         if (imageUrl) {
-            modalFront.innerHTML = `<img src="${imageUrl}" alt="${text}" class="w-full h-full object-cover rounded-xl pixelated" />`;
+            const img = document.createElement('img');
+            img.src = imageUrl;
+            img.alt = text;
+            img.className = 'w-full h-full object-cover rounded-xl pixelated';
+            modalFront.appendChild(img);
+
             modalFront.classList.remove('bg-blue-600', 'border-blue-800');
             modalFront.classList.add('bg-black', 'border-gray-800');
         } else {
-             modalFront.innerHTML = `<span class="text-white text-6xl font-bold">#${cardIndex}</span>`;
+             const num = document.createElement('span');
+             num.className = 'text-white text-6xl font-bold';
+             num.textContent = `#${cardIndex}`;
+             modalFront.appendChild(num);
+
              modalFront.classList.add('bg-blue-600', 'border-blue-800');
              modalFront.classList.remove('bg-black', 'border-gray-800');
         }
