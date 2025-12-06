@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI Image Gen Test</title>
+    <style>
+        @import "tailwindcss";
+        body { font-family: monospace; background-color: #111827; color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; }
+        input { color: black; padding: 10px; width: 300px; border-radius: 5px; }
+        button { background-color: #2563eb; color: white; padding: 10px 20px; border-radius: 5px; margin-top: 10px; cursor: pointer; }
+        button:hover { background-color: #1d4ed8; }
+        #result { margin-top: 20px; max-width: 512px; }
+        img { width: 100%; border-radius: 10px; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
+        .loading { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .5; } }
+    </style>
+  </head>
+  <body>
+    <h1 style="font-size: 2rem; margin-bottom: 20px;">AI Image Generator Test</h1>
+    
+    <div style="display: flex; flex-direction: column; gap: 10px;">
+        <input type="password" id="apiKey" placeholder="Enter OpenAI API Key" />
+        <input type="text" id="prompt" placeholder="Enter image description..." value="A futuristic cyberpunk city with neon lights" />
+        <button id="generateBtn">Generate Image</button>
+    </div>
+
+    <div id="result"></div>
+
+    <script type="module" src="./generator.ts"></script>
+  </body>
+</html>
