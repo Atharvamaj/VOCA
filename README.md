@@ -7,3 +7,14 @@ Created By -
   Zayan
   Kaizen
   Atharv
+
+
+## For bot
+
+Project name: VOCA
+
+Explain: An accessibility focused web application that uses speech to text and AI gen artwork to help users quickly capture, organize, and visualize ideas.
+
+Category: Web
+
+Website: voca-blush.vercel.app
